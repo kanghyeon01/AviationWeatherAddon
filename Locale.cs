@@ -61,6 +61,18 @@ namespace RealisticAviationATIS
             { kPrefix + "Temperature", "Temperature {0} °C, dew point {1} °C" },
             { kPrefix + "QNH", "QNH {0} hPa" },
             { kPrefix + "Remarks", "Remarks: automated station with a precipitation sensor (AO2)" },
+
+            { kPrefix + "Atis.Label", "ATIS" },
+            { kPrefix + "Atis.Empty", "No broadcast yet" },
+            { kPrefix + "Atis.Header", "Information {0}, recorded {1} UTC, frequency {2} MHz" },
+            { kPrefix + "Atis.Closed", "Airport closed: {0}" },
+            { kPrefix + "Atis.Closure[tornado]", "tornado" },
+            { kPrefix + "Atis.Closure[hail storm]", "hail storm" },
+            { kPrefix + "Atis.Closure[thunderstorm]", "thunderstorm" },
+            { kPrefix + "Atis.Closure[emergency]", "emergency" },
+            { kPrefix + "Atis.Runways.ILS", "ILS approach, runway {0} in use" },
+            { kPrefix + "Atis.Runways.Visual", "Visual approach, runway {0} in use" },
+            { kPrefix + "Atis.Advise", "Pilots report information {0} on first contact" },
         };
 
         protected override Dictionary<string, string> Entries => Strings;
@@ -107,6 +119,18 @@ namespace RealisticAviationATIS
             { kPrefix + "Temperature", "기온 {0}°C, 이슬점 {1}°C" },
             { kPrefix + "QNH", "QNH {0}hPa" },
             { kPrefix + "Remarks", "참고: 강수 감지기가 있는 자동 관측소(AO2)" },
+
+            { kPrefix + "Atis.Label", "ATIS" },
+            { kPrefix + "Atis.Empty", "아직 방송이 없습니다" },
+            { kPrefix + "Atis.Header", "정보 {0}, {1} UTC 녹음, 주파수 {2}MHz" },
+            { kPrefix + "Atis.Closed", "공항 폐쇄: {0}" },
+            { kPrefix + "Atis.Closure[tornado]", "토네이도" },
+            { kPrefix + "Atis.Closure[hail storm]", "우박" },
+            { kPrefix + "Atis.Closure[thunderstorm]", "뇌우" },
+            { kPrefix + "Atis.Closure[emergency]", "비상 상황" },
+            { kPrefix + "Atis.Runways.ILS", "ILS 접근, 사용 활주로 {0}" },
+            { kPrefix + "Atis.Runways.Visual", "시계 접근, 사용 활주로 {0}" },
+            { kPrefix + "Atis.Advise", "조종사는 첫 교신 때 정보 {0} 수신 사실을 알릴 것" },
         };
 
         protected override Dictionary<string, string> Entries => Strings;

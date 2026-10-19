@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Colossal.Entities;
 using Colossal.Serialization.Entities;
 using Game;
 using Game.Simulation;
@@ -19,6 +20,9 @@ namespace RealisticAviationATIS
         public string Text;
         public bool Special;
         public Observation Observation;
+
+        /// <summary>The airport's ATIS broadcast, made from this station's reports.</summary>
+        public readonly AtisBroadcast Atis = new AtisBroadcast();
     }
 
     /// <summary>
@@ -51,6 +55,9 @@ namespace RealisticAviationATIS
         private WindSystem m_WindSystem;
         private TimeSystem m_TimeSystem;
         private NameSystem m_NameSystem;
+        private AtcSystem m_AtcSystem;
+        private Game.Prefabs.PrefabSystem m_PrefabSystem;
+        private readonly List<string> m_Runways = new List<string>();
         private EntityQuery m_AirplaneStopQuery;
         private NativeList<Entity> m_Airports;
         private readonly Dictionary<Entity, StationReport> m_Reports = new Dictionary<Entity, StationReport>();
@@ -72,6 +79,8 @@ namespace RealisticAviationATIS
             m_WindSystem = World.GetOrCreateSystemManaged<WindSystem>();
             m_TimeSystem = World.GetOrCreateSystemManaged<TimeSystem>();
             m_NameSystem = World.GetOrCreateSystemManaged<NameSystem>();
+            m_AtcSystem = World.GetOrCreateSystemManaged<AtcSystem>();
+            m_PrefabSystem = World.GetOrCreateSystemManaged<Game.Prefabs.PrefabSystem>();
             m_AirplaneStopQuery = Airports.CreateAirplaneStopQuery(EntityManager);
             m_Airports = new NativeList<Entity>(4, Allocator.Persistent);
         }
@@ -123,23 +132,73 @@ namespace RealisticAviationATIS
                 float2 wind = WindSystem.GetWind(position, windMap).m_Wind;
                 Observation observation = Observe(time, wind);
                 bool known = m_Reports.TryGetValue(airport, out StationReport report);
-                if (known && !routine && !observation.DiffersSignificantlyFrom(report.Observation))
-                {
-                    continue;
-                }
+                bool issue = !known || routine || observation.DiffersSignificantlyFrom(report.Observation);
                 if (!known)
                 {
                     report = new StationReport();
                     m_Reports.Add(airport, report);
                 }
-                report.Station = AirportCodes.Get(EntityManager, m_NameSystem, airport);
-                // A station's first report is a routine one, whatever the minute.
-                report.Special = known && !routine;
-                report.Observation = observation;
-                report.Text = observation.ToMetar(report.Station, report.Special);
-                Version++;
-                Mod.Log.Info($"{report.Text} (wind raw {math.length(wind):0.###}, map average {m_AverageWind:0.###}; precipitation {(float)m_ClimateSystem.precipitation:0.##}, cloudiness {(float)m_ClimateSystem.cloudiness:0.##}, fog {(float)m_ClimateSystem.fog:0.##}, thunder {(float)m_ClimateSystem.thunder:0.##})");
+                if (issue)
+                {
+                    report.Station = AirportCodes.Get(EntityManager, m_NameSystem, airport);
+                    // A station's first report is a routine one, whatever the minute.
+                    report.Special = known && !routine;
+                    report.Observation = observation;
+                    report.Text = observation.ToMetar(report.Station, report.Special);
+                    Version++;
+                    LogReport(report, wind);
+                }
+                UpdateAtis(airport, report, issue, time);
             }
+        }
+
+        /// <summary>
+        /// A new ATIS (the next letter) when the first report came, at each hourly METAR, at a SPECI, at a half-hourly METAR
+        /// that differs significantly from the broadcast's weather, when the runways in use change, or when the airport closes
+        /// or opens (or the reason changes). Otherwise the broadcast stays as it is, as a recording does.
+        /// </summary>
+        private void UpdateAtis(Entity airport, StationReport report, bool issued, DateTime time)
+        {
+            AtisBroadcast atis = report.Atis;
+            m_Runways.Clear();
+            m_AtcSystem.GetLandingRunways(airport, m_Runways);
+            string runways = string.Join(",", m_Runways);
+            string closure = null;
+            if (m_AtcSystem.IsClosed(airport, out Entity closedBy))
+            {
+                string prefabName = closedBy != airport && EntityManager.TryGetComponent(closedBy, out Game.Prefabs.PrefabRef prefab)
+                    ? m_PrefabSystem.GetPrefabName(prefab.m_Prefab)
+                    : null;
+                closure = Atis.ClosureReason(prefabName);
+            }
+            string reason = atis.Letter < 0 ? "first report"
+                : issued && report.Special ? "special report"
+                : issued && time.Minute == 0 ? "hourly report"
+                : issued && report.Observation.DiffersSignificantlyFrom(atis.Observation) ? "weather change"
+                : runways != atis.RunwayKey ? "runway change"
+                : closure != atis.Closure ? (closure != null ? "airport closed" : "airport reopened")
+                : null;
+            if (reason == null)
+            {
+                return;
+            }
+            atis.Letter = (atis.Letter + 1) % Atis.kPhonetic.Length;
+            atis.Time = time;
+            atis.Observation = report.Observation;
+            atis.AirportName = m_NameSystem.GetRenderedLabelName(airport);
+            atis.AirspaceClass = m_AtcSystem.TryGetAirspaceClass(airport, out AirspaceClass airspaceClass) ? airspaceClass : AirspaceClass.D;
+            atis.Runways.Clear();
+            atis.Runways.AddRange(m_Runways);
+            atis.Closure = closure;
+            atis.Frequency = Atis.Frequency(airport);
+            atis.Text = Atis.Compose(atis);
+            Version++;
+            Mod.Log.Info($"ATIS {report.Station} {Atis.kPhonetic[atis.Letter]} ({reason}): {atis.Text}");
+        }
+
+        private void LogReport(StationReport report, float2 wind)
+        {
+            Mod.Log.Info($"{report.Text} (wind raw {math.length(wind):0.###}, map average {m_AverageWind:0.###}; precipitation {(float)m_ClimateSystem.precipitation:0.##}, cloudiness {(float)m_ClimateSystem.cloudiness:0.##}, fog {(float)m_ClimateSystem.fog:0.##}, thunder {(float)m_ClimateSystem.thunder:0.##})");
         }
 
         private void RemoveGoneAirports()
