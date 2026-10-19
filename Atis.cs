@@ -17,6 +17,9 @@ namespace RealisticAviationATIS
         /// <summary>0 = Alpha ... 25 = Zulu; -1 before the first broadcast.</summary>
         public int Letter = -1;
 
+        /// <summary>The letter before the current one, or -1.</summary>
+        public int PreviousLetter = -1;
+
         public DateTime Time;
         public Observation Observation;
         public string AirportName;

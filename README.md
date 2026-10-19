@@ -43,6 +43,18 @@ The game's wind has no unit, so it is scaled so that an average spot of the map 
   in English or Korean.
 - Each new recording is logged with its reason.
 
+## Phase 4: "with information X"
+
+This mod tells Realistic Aviation each airport's current ATIS (`AtisLink.Current`). Pilots then name the letter on
+their first call:
+
+- the pushback request: "PortLand Ground, X, ready for pushback, with information Bravo.";
+- a departure's first taxi request without pushback;
+- an arrival's first call to approach, or to the tower at class D.
+
+Traffic only passing through does not. A pilot who listened before the latest change names the old letter, and the
+controller answers "information Charlie now current, QNH 1009".
+
 ## Building
 
 Set `CS2ManagedPath` in `RealisticAviationATIS.csproj.user` to the game's `Cities2_Data\Managed` folder, then build it:

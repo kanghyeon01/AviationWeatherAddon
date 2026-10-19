@@ -83,10 +83,16 @@ namespace RealisticAviationATIS
             m_PrefabSystem = World.GetOrCreateSystemManaged<Game.Prefabs.PrefabSystem>();
             m_AirplaneStopQuery = Airports.CreateAirplaneStopQuery(EntityManager);
             m_Airports = new NativeList<Entity>(4, Allocator.Persistent);
+            // Phase 4: Realistic Aviation asks for each airport's ATIS, so pilots call "with information X".
+            AtisLink.Current = ProvideAtis;
         }
 
         protected override void OnDestroy()
         {
+            if (AtisLink.Current == (AtisLink.Provider)ProvideAtis)
+            {
+                AtisLink.Current = null;
+            }
             m_Airports.Dispose();
             base.OnDestroy();
         }
@@ -152,6 +158,22 @@ namespace RealisticAviationATIS
             }
         }
 
+        /// <summary>The airport's current ATIS for Realistic Aviation's tower: letter, previous letter, QNH, and its age in game minutes.</summary>
+        private bool ProvideAtis(Entity airport, out AtisState state)
+        {
+            state = default;
+            if (!m_Reports.TryGetValue(airport, out StationReport report) || report.Atis.Letter < 0)
+            {
+                return false;
+            }
+            AtisBroadcast atis = report.Atis;
+            state.m_Letter = atis.Letter;
+            state.m_PreviousLetter = atis.PreviousLetter;
+            state.m_Qnh = atis.Observation.Qnh;
+            state.m_MinutesSinceChange = (float)(m_TimeSystem.GetCurrentDateTime() - atis.Time).TotalMinutes;
+            return true;
+        }
+
         /// <summary>
         /// A new ATIS (the next letter) when the first report came, at each hourly METAR, at a SPECI, at a half-hourly METAR
         /// that differs significantly from the broadcast's weather, when the runways in use change, or when the airport closes
@@ -182,6 +204,7 @@ namespace RealisticAviationATIS
             {
                 return;
             }
+            atis.PreviousLetter = atis.Letter;
             atis.Letter = (atis.Letter + 1) % Atis.kPhonetic.Length;
             atis.Time = time;
             atis.Observation = report.Observation;
