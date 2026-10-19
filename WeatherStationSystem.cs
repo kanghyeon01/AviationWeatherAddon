@@ -224,8 +224,14 @@ namespace RealisticAviationATIS
             Mod.Log.Info($"ATIS {report.Station} {Atis.kPhonetic[atis.Letter]} ({reason}): {atis.Text}");
         }
 
+        /// <summary>The report, with the raw wind and climate values behind it when Realistic Aviation's "Detailed log" is on.</summary>
         private void LogReport(StationReport report, float2 wind)
         {
+            if (RealisticAviation.Mod.Setting == null || !RealisticAviation.Mod.Setting.DetailedLog)
+            {
+                Mod.Log.Info(report.Text);
+                return;
+            }
             Mod.Log.Info($"{report.Text} (wind raw {math.length(wind):0.###}, map average {m_AverageWind:0.###}; precipitation {(float)m_ClimateSystem.precipitation:0.##}, cloudiness {(float)m_ClimateSystem.cloudiness:0.##}, fog {(float)m_ClimateSystem.fog:0.##}, thunder {(float)m_ClimateSystem.thunder:0.##})");
         }
 
