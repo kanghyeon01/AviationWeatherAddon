@@ -59,6 +59,8 @@ namespace RealisticAviationATIS
         private Game.Prefabs.PrefabSystem m_PrefabSystem;
         private readonly List<string> m_Runways = new List<string>();
         private EntityQuery m_AirplaneStopQuery;
+        private EntityQuery m_HazardQuery;
+        private readonly List<Hazard> m_Hazards = new List<Hazard>();
         private NativeList<Entity> m_Airports;
         private readonly Dictionary<Entity, StationReport> m_Reports = new Dictionary<Entity, StationReport>();
         private long m_LastMinute = long.MinValue;
@@ -82,6 +84,7 @@ namespace RealisticAviationATIS
             m_AtcSystem = World.GetOrCreateSystemManaged<AtcSystem>();
             m_PrefabSystem = World.GetOrCreateSystemManaged<Game.Prefabs.PrefabSystem>();
             m_AirplaneStopQuery = Airports.CreateAirplaneStopQuery(EntityManager);
+            m_HazardQuery = Hazards.CreateQuery(EntityManager);
             m_Airports = new NativeList<Entity>(4, Allocator.Persistent);
             // Phase 4: Realistic Aviation asks for each airport's ATIS, so pilots call "with information X".
             AtisLink.Current = ProvideAtis;
@@ -125,6 +128,7 @@ namespace RealisticAviationATIS
             NativeArray<Wind> windMap = m_WindSystem.GetMap(true, out JobHandle dependencies);
             dependencies.Complete();
             m_AverageWind = AverageWind(windMap);
+            Hazards.Collect(EntityManager, m_PrefabSystem, m_HazardQuery, m_Hazards);
 
             RemoveGoneAirports();
             for (int i = 0; i < m_Airports.Length; i++)
@@ -137,6 +141,7 @@ namespace RealisticAviationATIS
                 float3 position = EntityManager.GetComponentData<Game.Objects.Transform>(airport).m_Position;
                 float2 wind = WindSystem.GetWind(position, windMap).m_Wind;
                 Observation observation = Observe(time, wind);
+                Hazards.Apply(observation, position.xz, m_Hazards, m_ClimateSystem.isSnowing);
                 bool known = m_Reports.TryGetValue(airport, out StationReport report);
                 bool issue = !known || routine || observation.DiffersSignificantlyFrom(report.Observation);
                 if (!known)

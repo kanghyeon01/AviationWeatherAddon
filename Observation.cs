@@ -34,6 +34,9 @@ namespace RealisticAviationATIS
         public int DewPoint;
         public int Qnh;
 
+        /// <summary>Where a thunderstorm stands in the distance (N, NE, ... from the airport), for "RMK CB DSNT NE", or null.</summary>
+        public string DistantCumulonimbus;
+
         /// <summary>Visibility 10 km or more, no cloud below 5,000 ft and no cumulonimbus, no weather: "CAVOK".</summary>
         public bool IsCavok
         {
@@ -139,6 +142,10 @@ namespace RealisticAviationATIS
             text.Append(' ').Append(TemperatureGroup(Temperature)).Append('/').Append(TemperatureGroup(DewPoint));
             text.Append(" Q").Append(Qnh.ToString("0000", CultureInfo.InvariantCulture));
             text.Append(" RMK AO2");
+            if (DistantCumulonimbus != null)
+            {
+                text.Append(" CB DSNT ").Append(DistantCumulonimbus);
+            }
             return text.ToString();
         }
 

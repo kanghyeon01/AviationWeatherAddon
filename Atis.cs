@@ -100,6 +100,10 @@ namespace RealisticAviationATIS
                     text.Append(", ").Append(Cloud(o.Clouds[i]));
                 }
             }
+            if (o.DistantCumulonimbus != null)
+            {
+                text.Append(", cumulonimbus distant ").Append(SpokenDirection(o.DistantCumulonimbus));
+            }
             text.Append(", temperature ").Append(Signed(o.Temperature)).Append(", dew point ").Append(Signed(o.DewPoint))
                 .Append(", QNH ").Append(o.Qnh.ToString(invariant)).Append(". ");
             if (atis.Closure == null && atis.Runways.Count != 0)
@@ -137,6 +141,13 @@ namespace RealisticAviationATIS
 
         private static string Weather(string code)
         {
+            switch (code)
+            {
+                case "+FC": return "tornado";
+                case "TSGR": return "thunderstorm with hail";
+                case "VCTS": return "thunderstorm in the vicinity";
+                case "VCFC": return "funnel cloud in the vicinity";
+            }
             string intensity = code.StartsWith("-", StringComparison.Ordinal) ? "light " : code.StartsWith("+", StringComparison.Ordinal) ? "heavy " : string.Empty;
             string body = code.TrimStart('-', '+');
             switch (body)
@@ -150,6 +161,21 @@ namespace RealisticAviationATIS
                 case "FZFG": return "freezing fog";
                 case "BR": return "mist";
                 default: return code;
+            }
+        }
+
+        private static string SpokenDirection(string point)
+        {
+            switch (point)
+            {
+                case "N": return "north";
+                case "NE": return "northeast";
+                case "E": return "east";
+                case "SE": return "southeast";
+                case "S": return "south";
+                case "SW": return "southwest";
+                case "W": return "west";
+                default: return "northwest";
             }
         }
 

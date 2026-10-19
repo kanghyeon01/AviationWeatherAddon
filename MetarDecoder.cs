@@ -75,6 +75,10 @@ namespace RealisticAviationATIS
             }
             lines.Add(Format("Temperature", o.Temperature.ToString(invariant), o.DewPoint.ToString(invariant)));
             lines.Add(Format("QNH", o.Qnh.ToString(invariant)));
+            if (o.DistantCumulonimbus != null)
+            {
+                lines.Add(Format("DistantCb", Text("Dir[" + o.DistantCumulonimbus + "]")));
+            }
         }
 
         private static string Text(string key)

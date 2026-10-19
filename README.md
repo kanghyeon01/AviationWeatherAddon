@@ -1,4 +1,4 @@
-# Realistic Aviation ATIS
+# Aviation Weather Add-on
 
 An expansion for [Realistic Aviation](https://github.com/kanghyeon01/RealisticAviation) (Cities: Skylines II): weather
 reports and ATIS at every airport.
@@ -54,6 +54,24 @@ their first call:
 
 Traffic only passing through does not. A pilot who listened before the latest change names the old letter, and the
 controller answers "information Charlie now current, QNH 1009".
+
+## Phase 5: weather disasters
+
+Thunderstorms, hail storms and tornadoes (the game's weather events, told apart by their prefab names as Realistic
+Aviation's tower does) show in each airport's METAR by their distance:
+
+- Over the airport (inside the event's radius):
+  - thunderstorm: `+TSRA` (`+TSSN` in snow), at least 20 kt gusting 40, visibility at most 3,000 m;
+  - hail: `TSGR`, 25 kt gusting 45, visibility 2,000 m;
+  - tornado: `+FC +TSRA`, 35 kt gusting 60, visibility 1,000 m.
+
+  Each also brings a cumulonimbus layer (the lowest layer, at least broken, or `BKN030CB`).
+- Within 8 km beyond the radius: `VCTS`, or `VCFC` for a tornado, with cumulonimbus.
+- Within 30 km: the remark `CB DSNT NE` (direction from the airport).
+
+A disaster arriving or leaving changes the weather group, so a SPECI goes out, and with it a new ATIS letter. The ATIS
+reads the same, for example "tornado" or "thunderstorm in the vicinity", and adds "cumulonimbus distant northeast". A
+closure is announced in the ATIS, not in the METAR. The decoded tooltip covers the new codes in English and Korean.
 
 ## Building
 
