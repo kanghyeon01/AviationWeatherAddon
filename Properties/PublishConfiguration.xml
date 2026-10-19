@@ -1,0 +1,21 @@
+<Publish>
+  <!-- Filled in after the first Publish ("Mod published with Id=...") so NewVersion/Update can find the mod. -->
+  <ModId Value="164025" />
+  <DisplayName Value="Aviation Weather Add-on" />
+  <ShortDescription Value="An add-on for Realistic Aviation: weather reports (METAR) and ATIS for your airports." />
+  <LongDescription># EN>
+This mod is an add-on for Realistic Aviation. It adds weather reports (METAR) and ATIS to airports.
+
+# KO>
+이 모드는 Realistic Aviation의 애드온이며, 공항에 기상정보(METAR)와 ATIS를 추가합니다.</LongDescription>
+  <Thumbnail Value="Properties/Thumbnail.png" />
+  <Tag Value="Code Mod" />
+  <ModVersion Value="1.0" />
+  <ChangeLog>First release (1.0).</ChangeLog>
+  <GameVersion Value="1.6.*" />
+  <!-- Realistic Aviation on Paradox Mods. -->
+  <Dependency Id="164022" />
+  <!-- Private while testing; change to Public and run the Update command to release. -->
+  <AccessLevel Value="Private" />
+  <ExternalLink Type="github" Url="https://github.com/kanghyeon01/AviationWeatherAddon" />
+</Publish>
