@@ -21,7 +21,7 @@ This mod is an add-on for Realistic Aviation. It adds weather reports (METAR) an
   <GameVersion Value="1.6.*" />
   <!-- Realistic Aviation on Paradox Mods. -->
   <Dependency Id="164022" />
-  <!-- Private while testing; change to Public and run the Update command to release. -->
-  <AccessLevel Value="Private" />
+  <!-- Public on the site; NewVersion writes this back too. -->
+  <AccessLevel Value="Public" />
   <ExternalLink Type="github" Url="https://github.com/kanghyeon01/AviationWeatherAddon" />
 </Publish>
