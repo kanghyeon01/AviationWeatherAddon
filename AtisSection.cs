@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Colossal.UI.Binding;
 using Game.UI.InGame;
+using RealisticAviation;
 using Unity.Entities;
 
 namespace RealisticAviationATIS
@@ -12,7 +13,6 @@ namespace RealisticAviationATIS
     public partial class AtisSection : InfoSectionBase
     {
         private WeatherStationSystem m_StationSystem;
-        private EntityQuery m_AirplaneStopQuery;
         private Entity m_Airport;
         private uint m_Version;
         private string m_Metar;
@@ -28,13 +28,12 @@ namespace RealisticAviationATIS
         {
             base.OnCreate();
             m_StationSystem = World.GetOrCreateSystemManaged<WeatherStationSystem>();
-            m_AirplaneStopQuery = Airports.CreateAirplaneStopQuery(EntityManager);
             m_InfoUISystem.AddMiddleSection(this);
         }
 
         protected override void OnUpdate()
         {
-            m_Airport = Airports.GetAirport(EntityManager, m_AirplaneStopQuery, selectedEntity);
+            m_Airport = Api.GetAirportOf(selectedEntity);
             visible = m_Airport != Entity.Null;
         }
 

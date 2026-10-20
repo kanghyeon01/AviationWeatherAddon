@@ -39,7 +39,7 @@
     </Reference>
   </ItemGroup>
 
-  <!-- Realistic Aviation, which this expansion needs (airport codes): the copy deployed to the local Mods folder. -->
+  <!-- Realistic Aviation, whose public Api this add-on uses: the copy deployed to the local Mods folder. -->
   <ItemGroup>
     <Reference Include="RealisticAviation">
       <HintPath>$(CS2LocalModsPath)\RealisticAviation\RealisticAviation.dll</HintPath>

@@ -55,13 +55,12 @@ namespace RealisticAviationATIS
         private WindSystem m_WindSystem;
         private TimeSystem m_TimeSystem;
         private NameSystem m_NameSystem;
-        private AtcSystem m_AtcSystem;
         private Game.Prefabs.PrefabSystem m_PrefabSystem;
         private readonly List<string> m_Runways = new List<string>();
-        private EntityQuery m_AirplaneStopQuery;
         private EntityQuery m_HazardQuery;
         private readonly List<Hazard> m_Hazards = new List<Hazard>();
-        private NativeList<Entity> m_Airports;
+        private readonly List<Entity> m_Airports = new List<Entity>();
+        private Api.AtisProvider m_AtisProvider;
         private readonly Dictionary<Entity, StationReport> m_Reports = new Dictionary<Entity, StationReport>();
         private long m_LastMinute = long.MinValue;
         private float m_AverageWind;
@@ -81,22 +80,16 @@ namespace RealisticAviationATIS
             m_WindSystem = World.GetOrCreateSystemManaged<WindSystem>();
             m_TimeSystem = World.GetOrCreateSystemManaged<TimeSystem>();
             m_NameSystem = World.GetOrCreateSystemManaged<NameSystem>();
-            m_AtcSystem = World.GetOrCreateSystemManaged<AtcSystem>();
             m_PrefabSystem = World.GetOrCreateSystemManaged<Game.Prefabs.PrefabSystem>();
-            m_AirplaneStopQuery = Airports.CreateAirplaneStopQuery(EntityManager);
             m_HazardQuery = Hazards.CreateQuery(EntityManager);
-            m_Airports = new NativeList<Entity>(4, Allocator.Persistent);
             // Phase 4: Realistic Aviation asks for each airport's ATIS, so pilots call "with information X".
-            AtisLink.Current = ProvideAtis;
+            m_AtisProvider = ProvideAtis;
+            Api.RegisterAtisProvider(m_AtisProvider);
         }
 
         protected override void OnDestroy()
         {
-            if (AtisLink.Current == (AtisLink.Provider)ProvideAtis)
-            {
-                AtisLink.Current = null;
-            }
-            m_Airports.Dispose();
+            Api.UnregisterAtisProvider(m_AtisProvider);
             base.OnDestroy();
         }
 
@@ -116,8 +109,8 @@ namespace RealisticAviationATIS
                 return;
             }
             m_LastMinute = minute;
-            Airports.Collect(EntityManager, m_AirplaneStopQuery, m_Airports);
-            if (m_Airports.Length == 0)
+            Api.GetAirports(m_Airports);
+            if (m_Airports.Count == 0)
             {
                 m_Reports.Clear();
                 return;
@@ -131,7 +124,7 @@ namespace RealisticAviationATIS
             Hazards.Collect(EntityManager, m_PrefabSystem, m_HazardQuery, m_Hazards);
 
             RemoveGoneAirports();
-            for (int i = 0; i < m_Airports.Length; i++)
+            for (int i = 0; i < m_Airports.Count; i++)
             {
                 Entity airport = m_Airports[i];
                 if (!EntityManager.HasComponent<Game.Objects.Transform>(airport))
@@ -151,7 +144,7 @@ namespace RealisticAviationATIS
                 }
                 if (issue)
                 {
-                    report.Station = AirportCodes.Get(EntityManager, m_NameSystem, airport);
+                    report.Station = Api.GetAirportCode(airport);
                     // A station's first report is a routine one, whatever the minute.
                     report.Special = known && !routine;
                     report.Observation = observation;
@@ -188,10 +181,10 @@ namespace RealisticAviationATIS
         {
             AtisBroadcast atis = report.Atis;
             m_Runways.Clear();
-            m_AtcSystem.GetLandingRunways(airport, m_Runways);
+            Api.GetLandingRunways(airport, m_Runways);
             string runways = string.Join(",", m_Runways);
             string closure = null;
-            if (m_AtcSystem.IsClosed(airport, out Entity closedBy))
+            if (Api.IsClosed(airport, out Entity closedBy))
             {
                 string prefabName = closedBy != airport && EntityManager.TryGetComponent(closedBy, out Game.Prefabs.PrefabRef prefab)
                     ? m_PrefabSystem.GetPrefabName(prefab.m_Prefab)
@@ -214,7 +207,7 @@ namespace RealisticAviationATIS
             atis.Time = time;
             atis.Observation = report.Observation;
             atis.AirportName = m_NameSystem.GetRenderedLabelName(airport);
-            atis.AirspaceClass = m_AtcSystem.TryGetAirspaceClass(airport, out AirspaceClass airspaceClass) ? airspaceClass : AirspaceClass.D;
+            atis.AirspaceClass = Api.TryGetAirspaceClass(airport, out AirspaceClass airspaceClass) ? airspaceClass : AirspaceClass.D;
             atis.Runways.Clear();
             atis.Runways.AddRange(m_Runways);
             atis.Closure = closure;
@@ -227,7 +220,7 @@ namespace RealisticAviationATIS
         /// <summary>The report, with the raw wind and climate values behind it when Realistic Aviation's "Detailed log" is on.</summary>
         private void LogReport(StationReport report, float2 wind)
         {
-            if (RealisticAviation.Mod.Setting == null || !RealisticAviation.Mod.Setting.DetailedLog)
+            if (!Api.DetailedLog)
             {
                 Mod.Log.Info(report.Text);
                 return;
@@ -353,7 +346,7 @@ namespace RealisticAviationATIS
             {
                 return;
             }
-            string station = AirportCodes.Get(EntityManager, m_NameSystem, airport);
+            string station = Api.GetAirportCode(airport);
             if (station != report.Station)
             {
                 report.Station = station;
