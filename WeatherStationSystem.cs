@@ -84,12 +84,12 @@ namespace RealisticAviationATIS
             m_HazardQuery = Hazards.CreateQuery(EntityManager);
             // Phase 4: Realistic Aviation asks for each airport's ATIS, so pilots call "with information X".
             m_AtisProvider = ProvideAtis;
-            Api.RegisterAtisProvider(m_AtisProvider);
+            Api.Atis.RegisterProvider(m_AtisProvider);
         }
 
         protected override void OnDestroy()
         {
-            Api.UnregisterAtisProvider(m_AtisProvider);
+            Api.Atis.UnregisterProvider(m_AtisProvider);
             base.OnDestroy();
         }
 
@@ -109,7 +109,7 @@ namespace RealisticAviationATIS
                 return;
             }
             m_LastMinute = minute;
-            Api.GetAirports(m_Airports);
+            Api.Airports.GetAll(m_Airports);
             if (m_Airports.Count == 0)
             {
                 m_Reports.Clear();
@@ -144,7 +144,7 @@ namespace RealisticAviationATIS
                 }
                 if (issue)
                 {
-                    report.Station = Api.GetAirportCode(airport);
+                    report.Station = Api.Airports.GetCode(airport);
                     // A station's first report is a routine one, whatever the minute.
                     report.Special = known && !routine;
                     report.Observation = observation;
@@ -181,15 +181,16 @@ namespace RealisticAviationATIS
         {
             AtisBroadcast atis = report.Atis;
             m_Runways.Clear();
-            Api.GetLandingRunways(airport, m_Runways);
+            Api.Airports.GetLandingRunways(airport, m_Runways);
             string runways = string.Join(",", m_Runways);
             string closure = null;
-            if (Api.IsClosed(airport, out Entity closedBy))
+            if (Api.Airports.TryGetInfo(airport, out AirportInfo info) && info.IsClosed)
             {
-                string prefabName = closedBy != airport && EntityManager.TryGetComponent(closedBy, out Game.Prefabs.PrefabRef prefab)
+                // Closed by another add-on: its own reason. By a disaster: what the weather calls it.
+                string prefabName = !info.IsClosedByAddOn && info.ClosedBy != airport && EntityManager.TryGetComponent(info.ClosedBy, out Game.Prefabs.PrefabRef prefab)
                     ? m_PrefabSystem.GetPrefabName(prefab.m_Prefab)
                     : null;
-                closure = Atis.ClosureReason(prefabName);
+                closure = info.IsClosedByAddOn ? info.ClosureReason : Atis.ClosureReason(prefabName);
             }
             string reason = atis.Letter < 0 ? "first report"
                 : issued && report.Special ? "special report"
@@ -207,7 +208,7 @@ namespace RealisticAviationATIS
             atis.Time = time;
             atis.Observation = report.Observation;
             atis.AirportName = m_NameSystem.GetRenderedLabelName(airport);
-            atis.AirspaceClass = Api.TryGetAirspaceClass(airport, out AirspaceClass airspaceClass) ? airspaceClass : AirspaceClass.D;
+            atis.AirspaceClass = Api.Airports.TryGetAirspaceClass(airport, out AirspaceClass airspaceClass) ? airspaceClass : AirspaceClass.D;
             atis.Runways.Clear();
             atis.Runways.AddRange(m_Runways);
             atis.Closure = closure;
@@ -220,7 +221,7 @@ namespace RealisticAviationATIS
         /// <summary>The report, with the raw wind and climate values behind it when Realistic Aviation's "Detailed log" is on.</summary>
         private void LogReport(StationReport report, float2 wind)
         {
-            if (!Api.DetailedLog)
+            if (!Api.Options.DetailedLog)
             {
                 Mod.Log.Info(report.Text);
                 return;
@@ -346,7 +347,7 @@ namespace RealisticAviationATIS
             {
                 return;
             }
-            string station = Api.GetAirportCode(airport);
+            string station = Api.Airports.GetCode(airport);
             if (station != report.Station)
             {
                 report.Station = station;

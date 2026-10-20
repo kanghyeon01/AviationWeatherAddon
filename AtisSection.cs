@@ -33,7 +33,7 @@ namespace RealisticAviationATIS
 
         protected override void OnUpdate()
         {
-            m_Airport = Api.GetAirportOf(selectedEntity);
+            m_Airport = Api.Airports.Find(selectedEntity);
             visible = m_Airport != Entity.Null;
         }
 
